@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "app/api/events/route.js": {
+      "maxDuration": 30
+    },
+    "app/api/overview/route.js": {
+      "maxDuration": 30
+    }
+  }
+}

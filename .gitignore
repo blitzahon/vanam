@@ -10,6 +10,13 @@ Thumbs.db
 .vscode/
 .idea/
 .vs/
+node_modules/
+.next/
+.env
+.env.local
+.env.development.local
+.env.production.local
+.env.preview.local
 database.db
 events/*.jpg
 events/*.jpeg

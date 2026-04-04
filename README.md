@@ -9,6 +9,7 @@ VANAM is a road-safety monitoring system for rural and highway footage. It detec
 - Stores event records with timestamp, confidence, camera ID, and snapshot path
 - Shows incident metrics, recent evidence, and camera activity in a browser dashboard
 - Runs locally without requiring a cloud backend
+- Includes a Vercel-ready Next.js product frontend backed by Neon Postgres
 
 ## Product overview
 
@@ -62,6 +63,70 @@ python dashboard.py
 Then open [http://127.0.0.1:8050](http://127.0.0.1:8050) in your browser.
 
 The dashboard reads directly from `database.db` and refreshes automatically, so new incidents appear as soon as they are logged.
+
+## Web product on Vercel
+
+This repository now also includes a deployable `Next.js` product frontend at the repo root. It is designed for `Vercel` and uses `Neon Postgres` as the hosted SQL database.
+
+### Frontend stack
+
+- Next.js App Router
+- Vercel deployment target
+- Neon Postgres through `@neondatabase/serverless`
+- Vercel Analytics
+
+### Local web app setup
+
+```bash
+npm install
+npm run dev
+```
+
+Then open `http://localhost:3000`.
+
+### Database setup
+
+Add a `DATABASE_URL` environment variable for your Neon database.
+
+You can provision Neon through Vercel Marketplace, then pull env vars locally with:
+
+```bash
+vercel env pull
+```
+
+To create the schema:
+
+```bash
+npm run db:setup
+```
+
+To load sample events:
+
+```bash
+npm run db:seed
+```
+
+### Product routes
+
+- `/` product landing page
+- `/dashboard` operations dashboard
+- `GET /api/overview` dashboard payload
+- `GET /api/events` recent events
+- `POST /api/events` event ingestion endpoint
+
+### Example ingestion payload
+
+```json
+{
+  "event_type": "Animal Crossing",
+  "object_type": "Horse",
+  "confidence": 0.93,
+  "timestamp": "2026-04-04T17:42:11Z",
+  "camera_id": "CAM-03",
+  "zone_path": "A -> B -> C",
+  "image_url": "https://example.com/event.jpg"
+}
+```
 
 ## Train with your dataset
 
