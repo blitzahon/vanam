@@ -14,6 +14,7 @@ export function DashboardClient({ initialPayload }) {
         if (!response.ok) {
           return;
         }
+
         const nextPayload = await response.json();
         setPayload(nextPayload);
       } catch {
@@ -25,38 +26,46 @@ export function DashboardClient({ initialPayload }) {
   }, []);
 
   const summary = payload.summary;
-  const systemMode =
-    payload.mode === "database" ? "Live" : payload.mode === "needs-setup" ? "Setup pending" : "Demo";
+  const workspaceStatus = getWorkspaceStatus(payload.mode);
+  const notificationSettings = payload.notificationSettings ?? {};
+  const cameraSources = payload.cameraSources ?? [];
+  const recentEvents = payload.recentEvents ?? [];
+  const activeCameraSources = cameraSources.filter((camera) => camera.status === "active").length;
+  const smsRecipientCount =
+    (notificationSettings.animalRecipients?.length ?? 0) + (notificationSettings.accidentRecipients?.length ?? 0);
+  const smsReady = Boolean(notificationSettings.smsEnabled && notificationSettings.hasTwilioConfig && smsRecipientCount > 0);
+  const snapshotCount = recentEvents.filter((event) => Boolean(event.imageUrl)).length;
 
   return (
     <div className="dashboard-shell">
       <section className="status-strip">
         <div className="status-chip">
-          <span className={`status-dot ${payload.mode === "database" ? "live" : payload.mode === "needs-setup" ? "warn" : ""}`} />
-          <span>{systemMode}</span>
+          <span className={`status-dot ${workspaceStatus.dotClass}`} />
+          <span>{workspaceStatus.label}</span>
         </div>
         <div className="status-strip-meta">
           <span>Updated {formatDateTime(payload.generatedAt)}</span>
-          <span>Refresh 10s</span>
+          <span>Refresh every 10 seconds</span>
         </div>
       </section>
 
-      {payload.setupMessage ? <section className="setup-card">Database setup pending. Complete schema initialization to switch this workspace to live event data.</section> : null}
+      {workspaceStatus.notice ? <section className="setup-card">{workspaceStatus.notice}</section> : null}
 
       <section className="metrics-grid">
-        <MetricCard label="Incidents" value={summary.totalEvents} note={summary.latestEventAt ? `Latest ${formatDateTime(summary.latestEventAt)}` : "Awaiting first event"} />
-        <MetricCard label="Animal Alerts" value={summary.animalEvents} note="Crossing detections confirmed" />
-        <MetricCard label="Accident Alerts" value={summary.accidentEvents} note="High-priority road events" />
-        <MetricCard label="Camera Network" value={summary.activeCameras} note={`${Math.round((summary.averageConfidence ?? 0) * 100)}% average confidence`} />
+        <MetricCard label="Total alerts" value={summary.totalEvents} note={summary.latestEventAt ? `Latest ${formatDateTime(summary.latestEventAt)}` : "Waiting for the first alert"} />
+        <MetricCard label="Wildlife alerts" value={summary.animalEvents} note="Verified animal activity near the roadway" />
+        <MetricCard label="Collision alerts" value={summary.accidentEvents} note="High-priority incident detections" />
+        <MetricCard label="Monitored cameras" value={summary.activeCameras} note={`${Math.round((summary.averageConfidence ?? 0) * 100)}% average confidence`} />
       </section>
 
       <section className="dashboard-grid">
         <div className="dashboard-stack">
-          <Panel title="Activity trend" subtitle="Incident volume across the past seven days.">
+          <Panel title="Activity trend" subtitle="Alert volume across the past seven days.">
             <div className="trend-chart">
               {payload.trend.map((point) => {
                 const maxCount = Math.max(...payload.trend.map((entry) => entry.count), 1);
                 const height = Math.max(18, Math.round((point.count / maxCount) * 180));
+
                 return (
                   <div className="trend-column" key={point.date}>
                     <span className="trend-value">{point.count}</span>
@@ -68,19 +77,15 @@ export function DashboardClient({ initialPayload }) {
             </div>
           </Panel>
 
-          <Panel title="Incident feed" subtitle="Most recent verified detections across the monitored network.">
+          <Panel title="Latest alerts" subtitle="Recent verified events across the monitored network.">
             <div className="event-grid">
-              {payload.recentEvents.length ? (
-                payload.recentEvents.map((event) => <EventCard event={event} key={event.id} />)
-              ) : (
-                <EmptyState message="No incidents available yet." />
-              )}
+              {recentEvents.length ? recentEvents.map((event) => <EventCard event={event} key={event.id} />) : <EmptyState message="No alerts are available yet." />}
             </div>
           </Panel>
         </div>
 
         <div className="dashboard-stack">
-          <Panel title="Detection mix" subtitle="Relative volume by incident class.">
+          <Panel title="Alert mix" subtitle="Breakdown by alert category.">
             <div className="pill-group">
               {payload.eventMix.length ? (
                 payload.eventMix.map((item) => (
@@ -95,46 +100,62 @@ export function DashboardClient({ initialPayload }) {
             </div>
           </Panel>
 
-          <Panel title="Camera activity" subtitle="Latest monitored activity by source.">
+          <Panel title="Camera coverage" subtitle="Most recent activity by monitored source.">
             <div className="camera-list">
               {payload.cameraBreakdown.length ? (
                 payload.cameraBreakdown.map((camera) => (
                   <article className="camera-item" key={camera.cameraId}>
                     <div>
                       <strong>{camera.cameraId}</strong>
-                      <span>{camera.latestEventAt ? formatDateTime(camera.latestEventAt) : "No activity yet"}</span>
+                      <span>{camera.latestEventAt ? formatDateTime(camera.latestEventAt) : "No recent activity"}</span>
                     </div>
                     <div className="camera-count">{camera.count}</div>
                   </article>
                 ))
               ) : (
-                <EmptyState message="No camera activity available." />
+                <EmptyState message="No camera activity is available yet." />
               )}
             </div>
           </Panel>
 
-          <Panel title="Alert readiness" subtitle="Dispatch channels and response paths.">
+          <Panel title="Response readiness" subtitle="What the operations team can act on right now.">
             <div className="readiness-list">
               <article className="readiness-item">
                 <div>
-                  <strong>SMS dispatch</strong>
-                  <span>Primary urgent alert route</span>
+                  <strong>SMS alerts</strong>
+                  <span>
+                    {smsReady
+                      ? `${smsRecipientCount} recipient${smsRecipientCount === 1 ? "" : "s"} configured for urgent alerts`
+                      : notificationSettings.smsEnabled
+                        ? "SMS is enabled, but the delivery setup still needs attention"
+                        : "SMS delivery is currently paused"}
+                  </span>
                 </div>
-                <em className="readiness-pill">Ready</em>
+                <em className={`readiness-pill ${smsReady ? "" : "muted"}`}>{smsReady ? "Ready" : notificationSettings.smsEnabled ? "Action needed" : "Paused"}</em>
               </article>
+
               <article className="readiness-item">
                 <div>
-                  <strong>Email evidence</strong>
-                  <span>Snapshot and event context delivery</span>
+                  <strong>Camera registry</strong>
+                  <span>
+                    {cameraSources.length
+                      ? `${activeCameraSources || cameraSources.length} source${(activeCameraSources || cameraSources.length) === 1 ? "" : "s"} currently active`
+                      : "No camera sources have been registered yet"}
+                  </span>
                 </div>
-                <em className="readiness-pill">Ready</em>
+                <em className={`readiness-pill ${cameraSources.length ? "" : "muted"}`}>{cameraSources.length ? "Available" : "Needs setup"}</em>
               </article>
+
               <article className="readiness-item">
                 <div>
-                  <strong>Webhook routing</strong>
-                  <span>External downstream integrations</span>
+                  <strong>Snapshot evidence</strong>
+                  <span>
+                    {snapshotCount
+                      ? `${snapshotCount} recent alert${snapshotCount === 1 ? "" : "s"} include attached imagery`
+                      : "Recent alerts do not include attached snapshots yet"}
+                  </span>
                 </div>
-                <em className="readiness-pill muted">Optional</em>
+                <em className={`readiness-pill ${snapshotCount ? "" : "muted"}`}>{snapshotCount ? "Available" : "Limited"}</em>
               </article>
             </div>
           </Panel>
@@ -194,6 +215,30 @@ function EventCard({ event }) {
 
 function EmptyState({ message }) {
   return <div className="empty-state">{message}</div>;
+}
+
+function getWorkspaceStatus(mode) {
+  if (mode === "database") {
+    return {
+      label: "Live monitoring",
+      notice: null,
+      dotClass: "live"
+    };
+  }
+
+  if (mode === "needs-setup") {
+    return {
+      label: "Configuration needed",
+      notice: "Live incident data is not connected in this environment yet. Finish workspace setup before rolling this out to the operations team.",
+      dotClass: "warn"
+    };
+  }
+
+  return {
+    label: "Preview workspace",
+    notice: "This workspace is showing preview activity instead of live roadside alerts. Connect the live feed before employee rollout.",
+    dotClass: "warn"
+  };
 }
 
 function formatDateTime(value) {

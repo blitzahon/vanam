@@ -29,42 +29,42 @@ export default async function HomePage() {
           </header>
 
           <div className="access-copy">
-            <p className="eyebrow">Protected Operations</p>
-            <h1>Roadside intelligence for teams that need to react fast.</h1>
+            <p className="eyebrow">Secure Operations</p>
+            <h1>Give every operator one place to see alerts, confirm incidents, and respond fast.</h1>
             <p className="access-text">
-              Monitor live camera coverage, review verified animal and accident events, and move from detection to response in one secure workspace.
+              VANAM keeps live camera activity, verified roadside events, and response evidence in a single protected workspace for your field and control room teams.
             </p>
           </div>
 
           <div className="access-preview">
             <div className="preview-command">
               <div className="preview-command-head">
-                <span className="preview-kicker">Live command feed</span>
-                <span className="preview-chip">Priority channel</span>
+                <span className="preview-kicker">Active operations</span>
+                <span className="preview-chip">Employee workspace</span>
               </div>
 
               <div className="preview-timeline">
                 <div className="preview-event">
                   <span className="preview-dot live" />
                   <div>
-                    <strong>Animal crossing risk flagged</strong>
-                    <p>Crossing zone persistence reached threshold on camera 02. Snapshot stored and alert chain armed.</p>
+                    <strong>Wildlife alert escalated</strong>
+                    <p>Camera 02 flagged repeated roadside movement and the latest evidence is ready for supervisor review.</p>
                   </div>
                 </div>
 
                 <div className="preview-event">
                   <span className="preview-dot warn" />
                   <div>
-                    <strong>Vehicle dwell anomaly under review</strong>
-                    <p>Stationary vehicle timer crossed advisory window. Secondary signal watch remains active.</p>
+                    <strong>Collision response in progress</strong>
+                    <p>The field team has acknowledged the newest incident and the event timeline is prepared for handoff.</p>
                   </div>
                 </div>
 
                 <div className="preview-event">
                   <span className="preview-dot" />
                   <div>
-                    <strong>Operator dashboard synchronized</strong>
-                    <p>Event history, alert status, and field evidence remain available in the secured control surface.</p>
+                    <strong>Shift handover synchronized</strong>
+                    <p>The next operator sees open alerts, latest evidence, and camera status the moment they sign in.</p>
                   </div>
                 </div>
               </div>
@@ -72,16 +72,16 @@ export default async function HomePage() {
 
             <div className="access-stat-grid">
               <div className="access-stat-card">
-                <span>Detection stack</span>
-                <strong>YOLOv8 pipeline</strong>
+                <span>Monitored coverage</span>
+                <strong>Roadside cameras in one view</strong>
               </div>
               <div className="access-stat-card">
-                <span>Alert flow</span>
-                <strong>SMS, email, webhook</strong>
+                <span>Team workflow</span>
+                <strong>Review, confirm, respond</strong>
               </div>
               <div className="access-stat-card">
-                <span>Evidence retention</span>
-                <strong>Snapshots + event log</strong>
+                <span>Evidence access</span>
+                <strong>Snapshots, timelines, notes</strong>
               </div>
             </div>
           </div>
@@ -90,9 +90,9 @@ export default async function HomePage() {
         <aside className="access-auth-panel">
           <div className="access-auth-shell">
             <div className="access-auth-header">
-              <span className="access-auth-kicker">Secure login</span>
-              <h2>Sign in to VANAM</h2>
-              <p>Use your operator credentials to access the live command dashboard and response workflows.</p>
+              <span className="access-auth-kicker">Employee Access</span>
+              <h2>Sign in to the VANAM workspace</h2>
+              <p>Use your assigned employee credentials to open the live monitoring dashboard and incident response tools.</p>
             </div>
 
             {clerkEnabled ? (
@@ -106,7 +106,6 @@ export default async function HomePage() {
                       headerSubtitle: "clerk-subtitle",
                       socialButtonsBlockButton: "clerk-social-button",
                       formButtonPrimary: "clerk-primary-button",
-                      footerActionLink: "clerk-link",
                       formFieldInput: "clerk-input",
                       formFieldLabel: "clerk-label",
                       identityPreviewText: "clerk-subtitle",
@@ -115,35 +114,32 @@ export default async function HomePage() {
                       dividerLine: "clerk-divider-line",
                       dividerText: "clerk-divider-text",
                       formFieldSuccessText: "clerk-success-text",
-                      alertText: "clerk-alert-text"
+                      alertText: "clerk-alert-text",
+                      footerAction: "clerk-footer-hidden",
+                      footerActionText: "clerk-footer-hidden",
+                      footerActionLink: "clerk-footer-hidden"
                     }
                   }}
+                  fallbackRedirectUrl="/dashboard"
                   routing="path"
-                  signUpUrl="/sign-up"
+                  signInUrl="/"
+                  withSignUp={false}
                 />
               </div>
             ) : (
               <div className="auth-card auth-card-empty auth-card-light">
-                <strong>Authentication setup required</strong>
-                <p>Add your Clerk publishable key and secret key to enable protected operator sign-in.</p>
+                <strong>Employee sign-in is not enabled in this environment.</strong>
+                <p>Add your Clerk publishable key and secret key here to enable protected access for the operations team.</p>
                 <div className="auth-env-list">
                   <code>NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY</code>
                   <code>CLERK_SECRET_KEY</code>
-                </div>
-                <div className="auth-actions">
-                  <Link className="primary-link" href="/dashboard">
-                    Open dashboard
-                  </Link>
-                  <Link className="secondary-link" href="/sign-up">
-                    Open sign-up
-                  </Link>
                 </div>
               </div>
             )}
 
             <div className="access-auth-footer">
-              <span>Deployment-ready access control for your operations team.</span>
-              <Link href="/dashboard">Preview dashboard</Link>
+              <span>Protected access for the operations team.</span>
+              {clerkEnabled ? <Link href="/dashboard">Open secure workspace</Link> : null}
             </div>
           </div>
         </aside>

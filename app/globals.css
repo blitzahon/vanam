@@ -607,6 +607,10 @@ pre {
   color: #fff;
 }
 
+.clerk-footer-hidden {
+  display: none !important;
+}
+
 .hero-shell,
 .dashboard-header,
 .panel-card,

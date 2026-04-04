@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "VANAM Dashboard",
-  description: "Road safety operations dashboard for the VANAM platform."
+  description: "Secure operations dashboard for the VANAM monitoring workspace."
 };
 
 export default async function DashboardPage() {
@@ -31,11 +31,10 @@ export default async function DashboardPage() {
     <main className="dashboard-page">
       <header className="dashboard-header">
         <div>
-          <p className="eyebrow">Command center</p>
-          <h1>Operational visibility across alerts, assets, and incident evidence.</h1>
+          <p className="eyebrow">Operations Workspace</p>
+          <h1>Live monitoring, verified alerts, and response evidence in one secure view.</h1>
         </div>
         <div className="header-actions">
-          <Link href="/api/overview">Data feed</Link>
           {clerkEnabled ? (
             <div className="user-button-shell">
               <UserButton afterSignOutUrl="/" />

@@ -26,7 +26,13 @@ export default function RootLayout({ children }) {
   return (
     <html className={`${display.variable} ${mono.variable}`} lang="en">
       <body>
-        {clerkEnabled ? <ClerkProvider>{children}</ClerkProvider> : children}
+        {clerkEnabled ? (
+          <ClerkProvider signInFallbackRedirectUrl="/dashboard" signInUrl="/">
+            {children}
+          </ClerkProvider>
+        ) : (
+          children
+        )}
         <Analytics />
       </body>
     </html>

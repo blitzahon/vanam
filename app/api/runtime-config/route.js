@@ -1,4 +1,4 @@
-import { getDashboardPayload } from "@/lib/db";
+import { getRuntimeConfig } from "@/lib/db";
 import { requireProtectedAccess } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +9,6 @@ export async function GET() {
     return access.response;
   }
 
-  const payload = await getDashboardPayload();
-  return Response.json(payload);
+  const config = await getRuntimeConfig();
+  return Response.json({ ok: true, config });
 }
