@@ -22,6 +22,7 @@ from alerts import (
     alert_system_start,
     alert_system_stop,
 )
+from animal_classifier import AnimalClassifier
 from animal_logic import AnimalTracker
 from database import init_db, log_event
 from detection import Detector
@@ -39,7 +40,14 @@ def save_frame(frame, event_type: str, object_type: str, timestamp: str) -> Path
     return output_path
 
 
-def run(video_path: str, camera_id: str, conf_threshold: float, show_preview: bool) -> None:
+def run(
+    video_path: str,
+    camera_id: str,
+    conf_threshold: float,
+    show_preview: bool,
+    animal_cls_model: str | None = None,
+    animal_cls_conf: float = 0.55,
+) -> None:
     video_file = Path(video_path)
     if not video_file.is_absolute():
         video_file = (Path.cwd() / video_file).resolve()
@@ -58,6 +66,11 @@ def run(video_path: str, camera_id: str, conf_threshold: float, show_preview: bo
 
     init_db()
     detector = Detector(conf_threshold=conf_threshold)
+    animal_classifier = (
+        AnimalClassifier(model_path=animal_cls_model, conf_threshold=animal_cls_conf)
+        if animal_cls_model
+        else None
+    )
     animal_tracker = AnimalTracker(frame_w)
     vehicle_tracker = VehicleTracker(frame_w, frame_h)
 
@@ -66,6 +79,8 @@ def run(video_path: str, camera_id: str, conf_threshold: float, show_preview: bo
     print(f"[VANAM] Video source     : {video_file}")
     print(f"[VANAM] Confidence floor : {conf_threshold:.2f}")
     print("[VANAM] Dashboard        : python dashboard.py")
+    if animal_classifier:
+        print(f"[VANAM] Animal classifier: {animal_cls_model}")
 
     events_logged = 0
 
@@ -77,6 +92,8 @@ def run(video_path: str, camera_id: str, conf_threshold: float, show_preview: bo
                 break
 
             detections = detector.detect(frame)
+            if animal_classifier:
+                detections = animal_classifier.enrich_detections(frame, detections)
 
             animal_event = animal_tracker.update(detections)
             if animal_event:
@@ -192,6 +209,17 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Show a live OpenCV preview window",
     )
+    parser.add_argument(
+        "--animal-cls-model",
+        default=None,
+        help="Optional trained classifier checkpoint used to refine animal species labels",
+    )
+    parser.add_argument(
+        "--animal-cls-conf",
+        type=float,
+        default=0.55,
+        help="Confidence threshold for classifier-based relabeling",
+    )
     return parser.parse_args()
 
 
@@ -202,4 +230,6 @@ if __name__ == "__main__":
         camera_id=args.camera,
         conf_threshold=args.conf,
         show_preview=args.preview,
+        animal_cls_model=args.animal_cls_model,
+        animal_cls_conf=args.animal_cls_conf,
     )

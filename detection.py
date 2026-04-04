@@ -8,9 +8,20 @@ Detection objects that the logic modules can work with.
 from dataclasses import dataclass, field
 from typing import List, Tuple
 import numpy as np
+from paths import configure_ultralytics_env
 
 # ── Label sets ────────────────────────────────────────────────────────────────
-ANIMAL_LABELS   = {"cow", "dog", "goat", "horse", "sheep", "cat", "bird"}
+ANIMAL_LABELS   = {
+    "bird",
+    "cat",
+    "cow",
+    "dog",
+    "elephant",
+    "goat",
+    "horse",
+    "lion",
+    "sheep",
+}
 VEHICLE_LABELS  = {"car", "motorcycle", "truck", "bus", "bicycle"}
 
 # COCO class names for reference (YOLOv8 pretrained)
@@ -49,6 +60,13 @@ class Detection:
         x1, y1, x2, y2 = self.bbox
         return ((x1 + x2) / 2, (y1 + y2) / 2)
 
+    def relabeled(self, label: str, confidence: float | None = None) -> "Detection":
+        return Detection(
+            label=label,
+            confidence=self.confidence if confidence is None else confidence,
+            bbox=self.bbox,
+        )
+
 
 class Detector:
     """
@@ -64,6 +82,7 @@ class Detector:
 
     def _load_model(self, model_path: str):
         try:
+            configure_ultralytics_env()
             from ultralytics import YOLO
             self.model = YOLO(model_path)
             print(f"[Detector] Model loaded: {model_path}")

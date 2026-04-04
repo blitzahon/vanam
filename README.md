@@ -63,6 +63,34 @@ Then open [http://127.0.0.1:8050](http://127.0.0.1:8050) in your browser.
 
 The dashboard reads directly from `database.db` and refreshes automatically, so new incidents appear as soon as they are logged.
 
+## Train with your dataset
+
+The dataset in `archive (1).zip` is a classification dataset arranged by animal class folders. That means it is best used to train an animal classifier, which VANAM can use to refine species labels after the detector finds an animal.
+
+### 1. Prepare the dataset
+
+```bash
+python prepare_classifier_dataset.py --zip "C:\Users\nachi\Downloads\archive (1).zip" --output datasets/animal_classifier
+```
+
+This creates an Ultralytics-ready classification dataset with `train/` and `val/` folders.
+
+### 2. Train the classifier
+
+```bash
+python train_classifier.py --data datasets/animal_classifier --epochs 20 --imgsz 224
+```
+
+The trained weights will be written under `runs/classify/vanam-animal-cls/`.
+
+### 3. Use the trained model in VANAM
+
+```bash
+python vanam.py --video videos/road.mp4 --preview --animal-cls-model runs/classify/vanam-animal-cls/weights/best.pt
+```
+
+This keeps the main detector for localization and uses your trained classifier to improve the animal species name on detected animal crops.
+
 ## Event data
 
 Each event record contains:

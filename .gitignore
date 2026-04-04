@@ -17,3 +17,8 @@ events/*.png
 videos/*.mp4
 videos/*.avi
 videos/*.mov
+datasets/
+runs/
+Ultralytics/
+yolo11n.pt
+yolov8n-cls.pt
