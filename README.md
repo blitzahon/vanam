@@ -1,19 +1,24 @@
 # VANAM 2.0
 
-VANAM is a local road-safety monitoring product for rural and highway footage. It detects animal crossings and vehicle accidents, stores evidence in SQLite, and includes a polished browser dashboard for reviewing incidents.
+VANAM is a road-safety monitoring system for rural and highway footage. It detects animal crossings and vehicle accidents, saves evidence snapshots, logs incidents to SQLite, and exposes a polished local dashboard for review.
 
-## Product highlights
+## What it does
 
-- Unified monitoring pipeline for animal and accident detection
-- Evidence logging with timestamps, camera IDs, confidence scores, and snapshots
-- Local browser dashboard for metrics, trend tracking, and recent-event review
-- Self-contained setup with no separate web framework or cloud service required
+- Detects animal movement across roadway zones
+- Flags potential accidents from sudden deceleration and stopped vehicles
+- Stores event records with timestamp, confidence, camera ID, and snapshot path
+- Shows incident metrics, recent evidence, and camera activity in a browser dashboard
+- Runs locally without requiring a cloud backend
+
+## Product overview
+
+VANAM is designed as a practical monitoring product rather than just a detection script. The detection pipeline processes video frames, the event store creates an audit trail, and the dashboard gives you a clean operator view of what happened and when.
 
 ## Project structure
 
 ```text
 VANAM/
-|-- vanam.py            Main detector pipeline
+|-- vanam.py            Main detection pipeline
 |-- dashboard.py        Local browser dashboard
 |-- detection.py        YOLOv8 wrapper
 |-- animal_logic.py     Zone-based animal crossing logic
@@ -34,7 +39,7 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-The first detection run will download `yolov8n.pt` automatically through Ultralytics.
+The first detection run downloads `yolov8n.pt` through Ultralytics automatically.
 
 ## Run the detector
 
@@ -42,10 +47,11 @@ The first detection run will download `yolov8n.pt` automatically through Ultraly
 python vanam.py --video videos/road.mp4 --preview
 ```
 
-Optional flags:
+Useful options:
 
 - `--camera CAM-02` to label a different camera source
 - `--conf 0.45` to change the YOLO confidence threshold
+- `--preview` to show the live OpenCV output while processing
 
 ## Open the dashboard
 
@@ -55,11 +61,11 @@ python dashboard.py
 
 Then open [http://127.0.0.1:8050](http://127.0.0.1:8050) in your browser.
 
-The dashboard reads directly from `database.db` and auto-refreshes every few seconds.
+The dashboard reads directly from `database.db` and refreshes automatically, so new incidents appear as soon as they are logged.
 
-## Data model
+## Event data
 
-The `events` table stores:
+Each event record contains:
 
 - `event_type`
 - `object_type`
@@ -69,16 +75,37 @@ The `events` table stores:
 - `camera_id`
 - `zone_path`
 
-## Suggested git workflow
+Snapshots are stored in `events/` and the event database is stored in `database.db`.
+
+## Quick demo flow
+
+1. Place a sample road video in `videos/`.
+2. Run `python vanam.py --video videos/road.mp4 --preview`.
+3. In another terminal, run `python dashboard.py`.
+4. Open the dashboard and review incidents as they are detected.
+
+## Git and GitHub
+
+This project is already initialized as a local git repository.
+
+To connect it to GitHub after creating a remote repository:
 
 ```bash
-git init -b main
-git add .
-git commit -m "Initial VANAM product dashboard"
+git remote add origin <your-repo-url>
+git push -u origin main
 ```
 
-If GitHub CLI is authenticated on this machine, you can publish with:
+If you install GitHub CLI, you can also publish directly with:
 
 ```bash
 gh repo create vanam --private --source . --remote origin --push
 ```
+
+## Tech stack
+
+- Python 3.10+
+- OpenCV
+- Ultralytics YOLOv8
+- NumPy
+- SQLite
+- Built-in Python HTTP server for the dashboard
