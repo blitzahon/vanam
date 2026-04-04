@@ -84,6 +84,25 @@ npm run dev
 
 Then open `http://localhost:3000`.
 
+### Authentication setup
+
+The web app uses `Clerk` for employee authentication. When Clerk keys are present, the landing page becomes the employee sign-in screen and both `/dashboard` and `/api/*` are protected.
+
+1. Create a Clerk application and enable the sign-in methods you want for operators.
+2. Add these values to `.env.local`:
+
+```bash
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_publishable_key
+CLERK_SECRET_KEY=your_secret_key
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+```
+
+3. Restart `npm run dev`.
+4. Create or invite employee accounts from the Clerk dashboard before handing out access, because self sign-up is disabled in the embedded sign-in form.
+
+If Clerk keys are omitted, VANAM falls back to demo mode so you can still inspect the UI locally without authentication.
+
 ### Database setup
 
 Add a `DATABASE_URL` environment variable for your Neon database.

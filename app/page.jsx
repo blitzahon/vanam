@@ -3,8 +3,11 @@ import Link from "next/link";
 import { auth as getAuth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
+import { getClerkSignInUrl, isClerkEnabled } from "@/lib/clerk";
+
 export default async function HomePage() {
-  const clerkEnabled = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY);
+  const clerkEnabled = isClerkEnabled();
+  const signInUrl = getClerkSignInUrl();
 
   if (clerkEnabled) {
     const { userId } = await getAuth();
@@ -122,7 +125,7 @@ export default async function HomePage() {
                   }}
                   fallbackRedirectUrl="/dashboard"
                   routing="path"
-                  signInUrl="/"
+                  signInUrl={signInUrl}
                   withSignUp={false}
                 />
               </div>
@@ -139,7 +142,7 @@ export default async function HomePage() {
 
             <div className="access-auth-footer">
               <span>Protected access for the operations team.</span>
-              {clerkEnabled ? <Link href="/dashboard">Open secure workspace</Link> : null}
+              {clerkEnabled ? <Link href="/dashboard" prefetch={false}>Open secure workspace</Link> : null}
             </div>
           </div>
         </aside>

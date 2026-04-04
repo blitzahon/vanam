@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { DashboardClient } from "@/components/dashboard-client";
+import { getClerkSignInUrl, isClerkEnabled } from "@/lib/clerk";
 import { getDashboardPayload } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -14,14 +15,13 @@ export const metadata = {
 };
 
 export default async function DashboardPage() {
-  const clerkEnabled = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY);
-  let userId = null;
+  const clerkEnabled = isClerkEnabled();
+  const signInUrl = getClerkSignInUrl();
 
   if (clerkEnabled) {
     const authState = await getAuth();
-    userId = authState.userId;
-    if (!userId) {
-      redirect("/");
+    if (!authState.userId) {
+      redirect(signInUrl);
     }
   }
 

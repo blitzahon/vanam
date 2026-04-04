@@ -3,6 +3,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
 
 import "@/app/globals.css";
+import { getClerkSignInUrl, getClerkSignUpUrl, isClerkEnabled } from "@/lib/clerk";
 
 const display = Space_Grotesk({
   subsets: ["latin"],
@@ -21,13 +22,15 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
-  const clerkEnabled = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY);
+  const clerkEnabled = isClerkEnabled();
+  const signInUrl = getClerkSignInUrl();
+  const signUpUrl = getClerkSignUpUrl();
 
   return (
     <html className={`${display.variable} ${mono.variable}`} lang="en">
       <body>
         {clerkEnabled ? (
-          <ClerkProvider signInFallbackRedirectUrl="/dashboard" signInUrl="/">
+          <ClerkProvider signInFallbackRedirectUrl="/dashboard" signInUrl={signInUrl} signUpUrl={signUpUrl}>
             {children}
           </ClerkProvider>
         ) : (
