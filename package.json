@@ -10,6 +10,7 @@
     "db:seed": "node scripts/seed-db.mjs"
   },
   "dependencies": {
+    "@clerk/nextjs": "^6.21.0",
     "@neondatabase/serverless": "^0.10.4",
     "@vercel/analytics": "^1.5.0",
     "next": "^15.3.0",

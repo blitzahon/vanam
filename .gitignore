@@ -29,3 +29,6 @@ runs/
 Ultralytics/
 yolo11n.pt
 yolov8n-cls.pt
+
+.vercel
+.npm-cache/

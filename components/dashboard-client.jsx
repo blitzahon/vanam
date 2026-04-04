@@ -25,40 +25,34 @@ export function DashboardClient({ initialPayload }) {
   }, []);
 
   const summary = payload.summary;
+  const systemMode =
+    payload.mode === "database" ? "Live" : payload.mode === "needs-setup" ? "Setup pending" : "Demo";
 
   return (
     <div className="dashboard-shell">
-      <section className="mode-banner">
-        <div>
-          <p className="mode-eyebrow">
-            {payload.mode === "database" ? "Live database mode" : payload.mode === "needs-setup" ? "Database setup required" : "Demo mode"}
-          </p>
-          <h2>
-            {payload.mode === "database"
-              ? "VANAM is reading from Neon Postgres on a Vercel-ready API layer."
-              : payload.mode === "needs-setup"
-                ? "The frontend is connected, but the Postgres schema still needs to be created."
-                : "The product UI is live and ready to switch to a real database."}
-          </h2>
+      <section className="status-strip">
+        <div className="status-chip">
+          <span className={`status-dot ${payload.mode === "database" ? "live" : payload.mode === "needs-setup" ? "warn" : ""}`} />
+          <span>{systemMode}</span>
         </div>
-        <div className="mode-meta">
-          <span>Refreshes every 10s</span>
-          <span>{formatDateTime(payload.generatedAt)}</span>
+        <div className="status-strip-meta">
+          <span>Updated {formatDateTime(payload.generatedAt)}</span>
+          <span>Refresh 10s</span>
         </div>
       </section>
 
-      {payload.setupMessage ? <section className="setup-card">{payload.setupMessage}</section> : null}
+      {payload.setupMessage ? <section className="setup-card">Database setup pending. Complete schema initialization to switch this workspace to live event data.</section> : null}
 
       <section className="metrics-grid">
-        <MetricCard label="Total Events" value={summary.totalEvents} note={summary.latestEventAt ? `Latest: ${formatDateTime(summary.latestEventAt)}` : "No incidents logged yet"} />
-        <MetricCard label="Animal Crossings" value={summary.animalEvents} note="Tracked wildlife movement" />
-        <MetricCard label="Accidents" value={summary.accidentEvents} note="Detected vehicle incidents" />
-        <MetricCard label="Average Confidence" value={`${Math.round((summary.averageConfidence ?? 0) * 100)}%`} note={`${summary.activeCameras} active camera source(s)`} />
+        <MetricCard label="Incidents" value={summary.totalEvents} note={summary.latestEventAt ? `Latest ${formatDateTime(summary.latestEventAt)}` : "Awaiting first event"} />
+        <MetricCard label="Animal Alerts" value={summary.animalEvents} note="Crossing detections confirmed" />
+        <MetricCard label="Accident Alerts" value={summary.accidentEvents} note="High-priority road events" />
+        <MetricCard label="Camera Network" value={summary.activeCameras} note={`${Math.round((summary.averageConfidence ?? 0) * 100)}% average confidence`} />
       </section>
 
       <section className="dashboard-grid">
         <div className="dashboard-stack">
-          <Panel title="Event velocity" subtitle="A seven-day pulse of VANAM activity.">
+          <Panel title="Activity trend" subtitle="Incident volume across the past seven days.">
             <div className="trend-chart">
               {payload.trend.map((point) => {
                 const maxCount = Math.max(...payload.trend.map((entry) => entry.count), 1);
@@ -74,19 +68,19 @@ export function DashboardClient({ initialPayload }) {
             </div>
           </Panel>
 
-          <Panel title="Recent incidents" subtitle="Evidence-ready operational feed from the platform.">
+          <Panel title="Incident feed" subtitle="Most recent verified detections across the monitored network.">
             <div className="event-grid">
               {payload.recentEvents.length ? (
                 payload.recentEvents.map((event) => <EventCard event={event} key={event.id} />)
               ) : (
-                <EmptyState message="No events are in the database yet. Use the ingest API or seed script to populate the dashboard." />
+                <EmptyState message="No incidents available yet." />
               )}
             </div>
           </Panel>
         </div>
 
         <div className="dashboard-stack">
-          <Panel title="Event mix" subtitle="Distribution of detected incident classes.">
+          <Panel title="Detection mix" subtitle="Relative volume by incident class.">
             <div className="pill-group">
               {payload.eventMix.length ? (
                 payload.eventMix.map((item) => (
@@ -96,41 +90,52 @@ export function DashboardClient({ initialPayload }) {
                   </div>
                 ))
               ) : (
-                <EmptyState message="No categorized events yet." />
+                <EmptyState message="No categorized activity yet." />
               )}
             </div>
           </Panel>
 
-          <Panel title="Camera activity" subtitle="Per-camera monitoring throughput.">
+          <Panel title="Camera activity" subtitle="Latest monitored activity by source.">
             <div className="camera-list">
               {payload.cameraBreakdown.length ? (
                 payload.cameraBreakdown.map((camera) => (
                   <article className="camera-item" key={camera.cameraId}>
                     <div>
                       <strong>{camera.cameraId}</strong>
-                      <span>{camera.latestEventAt ? formatDateTime(camera.latestEventAt) : "Waiting for first event"}</span>
+                      <span>{camera.latestEventAt ? formatDateTime(camera.latestEventAt) : "No activity yet"}</span>
                     </div>
                     <div className="camera-count">{camera.count}</div>
                   </article>
                 ))
               ) : (
-                <EmptyState message="No camera activity available yet." />
+                <EmptyState message="No camera activity available." />
               )}
             </div>
           </Panel>
 
-          <Panel title="API contract" subtitle="Use this route from the Python detector or any upstream ingest worker.">
-            <div className="api-card">
-              <code>POST /api/events</code>
-              <pre>{`{
-  "event_type": "Animal Crossing",
-  "object_type": "Horse",
-  "confidence": 0.93,
-  "timestamp": "2026-04-04T17:42:11Z",
-  "camera_id": "CAM-03",
-  "zone_path": "A -> B -> C",
-  "image_url": "https://..."
-}`}</pre>
+          <Panel title="Alert readiness" subtitle="Dispatch channels and response paths.">
+            <div className="readiness-list">
+              <article className="readiness-item">
+                <div>
+                  <strong>SMS dispatch</strong>
+                  <span>Primary urgent alert route</span>
+                </div>
+                <em className="readiness-pill">Ready</em>
+              </article>
+              <article className="readiness-item">
+                <div>
+                  <strong>Email evidence</strong>
+                  <span>Snapshot and event context delivery</span>
+                </div>
+                <em className="readiness-pill">Ready</em>
+              </article>
+              <article className="readiness-item">
+                <div>
+                  <strong>Webhook routing</strong>
+                  <span>External downstream integrations</span>
+                </div>
+                <em className="readiness-pill muted">Optional</em>
+              </article>
             </div>
           </Panel>
         </div>
@@ -176,7 +181,7 @@ function EventCard({ event }) {
         </div>
         <h4>{event.objectType}</h4>
         <p>{formatDateTime(event.occurredAt)}</p>
-        <p>Camera: {event.cameraId}</p>
+        <p>Camera {event.cameraId}</p>
         {event.zonePath ? <p>Route: {event.zonePath}</p> : null}
         <div className="event-footer">
           <span>Confidence</span>
