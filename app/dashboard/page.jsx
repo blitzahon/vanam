@@ -1,11 +1,8 @@
-import "@/lib/clerk-env";
 import { UserButton } from "@clerk/nextjs";
-import { auth as getAuth } from "@clerk/nextjs/server";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
 import { DashboardClient } from "@/components/dashboard-client";
-import { getClerkSignInUrl, isClerkEnabled } from "@/lib/clerk";
+import { isClerkEnabled } from "@/lib/clerk";
 import { getDashboardPayload } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -17,14 +14,6 @@ export const metadata = {
 
 export default async function DashboardPage() {
   const clerkEnabled = isClerkEnabled();
-  const signInUrl = getClerkSignInUrl();
-
-  if (clerkEnabled) {
-    const authState = await getAuth();
-    if (!authState.userId) {
-      redirect(signInUrl);
-    }
-  }
 
   const payload = await getDashboardPayload();
 

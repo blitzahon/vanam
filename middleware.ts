@@ -1,11 +1,20 @@
-import "@/lib/clerk-env";
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-import { getClerkPublishableKey, isClerkEnabled } from "@/lib/clerk";
+import { getClerkPublishableKey, getClerkSecretKey, isClerkEnabled } from "@/lib/clerk";
 
 const isProtectedRoute = createRouteMatcher(["/dashboard(.*)", "/api(.*)"]);
 const publishableKey = getClerkPublishableKey();
+const secretKey = getClerkSecretKey();
+
+if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && publishableKey) {
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = publishableKey;
+}
+
+if (!process.env.CLERK_SECRET_KEY && secretKey) {
+  process.env.CLERK_SECRET_KEY = secretKey;
+}
+
 const withClerk = clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
     await auth.protect();

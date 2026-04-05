@@ -1,22 +1,11 @@
-import "@/lib/clerk-env";
 import { SignIn } from "@clerk/nextjs";
 import Link from "next/link";
-import { auth as getAuth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
 
 import { getClerkSignInUrl, isClerkEnabled } from "@/lib/clerk";
 
-export default async function HomePage() {
+export default function HomePage() {
   const clerkEnabled = isClerkEnabled();
   const signInUrl = getClerkSignInUrl();
-
-  if (clerkEnabled) {
-    const { userId } = await getAuth();
-
-    if (userId) {
-      redirect("/dashboard");
-    }
-  }
 
   return (
     <main className="access-page access-page-auth-only">
