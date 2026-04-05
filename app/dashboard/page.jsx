@@ -8,8 +8,8 @@ import { getDashboardPayload } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "VANAM Dashboard",
-  description: "Secure operations dashboard for the VANAM monitoring workspace."
+  title: "VANAM — National Highway Surveillance",
+  description: "Secure command dashboard for real-time road safety monitoring, wildlife detection, and incident response."
 };
 
 export default async function DashboardPage() {
@@ -21,7 +21,7 @@ export default async function DashboardPage() {
       <main className="dashboard-page">
         <header className="dashboard-header">
           <div>
-            <p className="eyebrow">Operations Workspace</p>
+            <p className="eyebrow">National Highway Surveillance Command</p>
             <h1>Employee authentication needs to be fixed before this dashboard can go live.</h1>
           </div>
           <div className="header-actions">
@@ -47,8 +47,8 @@ export default async function DashboardPage() {
     <main className="dashboard-page">
       <header className="dashboard-header">
         <div>
-          <p className="eyebrow">Operations Workspace</p>
-          <h1>Live monitoring, verified alerts, and response evidence in one secure view.</h1>
+          <p className="eyebrow">National Highway Surveillance Command</p>
+          <h1>Intelligent Road Safety Surveillance — Real-Time Threat Detection & Incident Response.</h1>
         </div>
         <div className="header-actions">
           {clerkEnabled ? (

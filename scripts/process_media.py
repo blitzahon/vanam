@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -11,6 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from accident_logic import VehicleTracker
+from alerts import alert_accident, alert_animal_crossing
 from animal_classifier import AnimalClassifier
 from animal_logic import AnimalTracker
 from detection import Detector
@@ -30,6 +32,12 @@ def parse_args() -> argparse.Namespace:
         help="Optional JSON array of animal labels that should be treated as monitored species",
     )
     return parser.parse_args()
+
+
+def get_sms_recipients() -> dict:
+    animal = os.environ.get("VANAM_ANIMAL_SMS_TO", "").strip() or None
+    accident = os.environ.get("VANAM_ACCIDENT_SMS_TO", "").strip() or None
+    return {"animal": animal, "accident": accident}
 
 
 def save_frame(frame, event_type: str, object_type: str, timestamp: str) -> str:
@@ -76,13 +84,13 @@ def main() -> int:
     video_file = Path(args.video).expanduser().resolve()
 
     if not video_file.exists():
-      print(json.dumps({"ok": False, "error": f"Video file not found: {video_file}"}, ensure_ascii=True))
-      return 1
+        print(json.dumps({"ok": False, "error": f"Video file not found: {video_file}"}, ensure_ascii=True))
+        return 1
 
     cap = cv2.VideoCapture(str(video_file))
     if not cap.isOpened():
-      print(json.dumps({"ok": False, "error": f"Unable to open video: {video_file}"}, ensure_ascii=True))
-      return 1
+        print(json.dumps({"ok": False, "error": f"Unable to open video: {video_file}"}, ensure_ascii=True))
+        return 1
 
     frame_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) or 0)
     frame_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0)
@@ -96,6 +104,7 @@ def main() -> int:
     animal_tracker = AnimalTracker(frame_w)
     vehicle_tracker = VehicleTracker(frame_w, frame_h)
     allowed_animal_labels = parse_allowed_labels(args.allowed_animal_labels)
+    sms_recipients = get_sms_recipients()
     events = []
 
     try:
@@ -115,6 +124,15 @@ def main() -> int:
 
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 image_path = save_frame(frame, animal_event["event_type"], animal_event["object_type"], timestamp)
+                alert_animal_crossing(
+                    animal_type=animal_event["object_type"],
+                    timestamp=timestamp,
+                    confidence=animal_event["confidence"],
+                    image_path=image_path,
+                    zone_path=animal_event.get("zone_path"),
+                    camera_id=args.camera,
+                    sms_to=sms_recipients["animal"],
+                )
                 events.append(
                     serialize_event(
                         event_type=animal_event["event_type"],
@@ -131,6 +149,14 @@ def main() -> int:
             if accident_event:
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 image_path = save_frame(frame, accident_event["event_type"], accident_event["object_type"], timestamp)
+                alert_accident(
+                    vehicles_count=accident_event["vehicles_count"],
+                    timestamp=timestamp,
+                    confidence=accident_event["confidence"],
+                    image_path=image_path,
+                    camera_id=args.camera,
+                    sms_to=sms_recipients["accident"],
+                )
                 events.append(
                     serialize_event(
                         event_type=accident_event["event_type"],
