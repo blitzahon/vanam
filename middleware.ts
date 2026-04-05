@@ -7,20 +7,13 @@ const isProtectedRoute = createRouteMatcher(["/dashboard(.*)", "/api(.*)"]);
 const publishableKey = getClerkPublishableKey();
 const secretKey = getClerkSecretKey();
 
-if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && publishableKey) {
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = publishableKey;
-}
-
-if (!process.env.CLERK_SECRET_KEY && secretKey) {
-  process.env.CLERK_SECRET_KEY = secretKey;
-}
-
 const withClerk = clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
     await auth.protect();
   }
 }, {
-  publishableKey
+  publishableKey,
+  secretKey
 });
 
 export default isClerkEnabled() ? withClerk : () => NextResponse.next();
