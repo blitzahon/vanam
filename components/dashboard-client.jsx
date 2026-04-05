@@ -66,6 +66,7 @@ export function DashboardClient({ initialPayload }) {
   const cameraSources = payload.cameraSources ?? [];
   const recentEvents = payload.recentEvents ?? [];
   const assetRegistry = payload.assetRegistry ?? [];
+  const supportsLocalMediaProcessing = Boolean(payload.supportsLocalMediaProcessing);
   const activeCameraSources = cameraSources.filter((camera) => camera.status === "active").length;
   const smsRecipientCount =
     (notificationSettings.animalRecipients?.length ?? 0) + (notificationSettings.accidentRecipients?.length ?? 0);
@@ -353,17 +354,23 @@ export function DashboardClient({ initialPayload }) {
         </Panel>
 
         <Panel title="Test with video or camera" subtitle="Use an uploaded clip or a browser camera recording instead of a live CCTV source.">
+          {!supportsLocalMediaProcessing ? (
+            <div className="media-status">
+              Local upload and browser-camera processing are available in the local workspace. Add persistent storage and a worker runtime before enabling this flow in Vercel production.
+            </div>
+          ) : null}
+
           <form className="media-form" onSubmit={handleUploadSubmit}>
             <label className="media-field">
               <span>Upload a placeholder video</span>
               <input
                 accept="video/*"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !supportsLocalMediaProcessing}
                 onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)}
                 type="file"
               />
             </label>
-            <button className="media-button primary" disabled={!selectedFile || isSubmitting} type="submit">
+            <button className="media-button primary" disabled={!selectedFile || isSubmitting || !supportsLocalMediaProcessing} type="submit">
               {isSubmitting ? "Processing..." : "Analyze uploaded video"}
             </button>
           </form>
@@ -376,20 +383,20 @@ export function DashboardClient({ initialPayload }) {
               </div>
               <div className="camera-capture-actions">
                 {isCameraReady ? (
-                  <button className="media-button" disabled={isSubmitting} onClick={handleStopCamera} type="button">
+                  <button className="media-button" disabled={isSubmitting || !supportsLocalMediaProcessing} onClick={handleStopCamera} type="button">
                     Stop camera
                   </button>
                 ) : (
-                  <button className="media-button" disabled={isSubmitting} onClick={handleStartCamera} type="button">
+                  <button className="media-button" disabled={isSubmitting || !supportsLocalMediaProcessing} onClick={handleStartCamera} type="button">
                     Start camera
                   </button>
                 )}
                 {!isRecording ? (
-                  <button className="media-button primary" disabled={!isCameraReady || isSubmitting} onClick={handleRecordCamera} type="button">
+                  <button className="media-button primary" disabled={!isCameraReady || isSubmitting || !supportsLocalMediaProcessing} onClick={handleRecordCamera} type="button">
                     Record clip
                   </button>
                 ) : (
-                  <button className="media-button primary" disabled={isSubmitting} onClick={handleStopRecording} type="button">
+                  <button className="media-button primary" disabled={isSubmitting || !supportsLocalMediaProcessing} onClick={handleStopRecording} type="button">
                     Stop and analyze
                   </button>
                 )}

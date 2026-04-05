@@ -16,6 +16,16 @@ export async function POST(request) {
     return access.response;
   }
 
+  if (process.env.VERCEL) {
+    return Response.json(
+      {
+        ok: false,
+        error: "Local video upload and browser-camera processing are intended for the local workspace. Use persistent object storage before enabling this flow in Vercel production."
+      },
+      { status: 501 }
+    );
+  }
+
   try {
     await ensureLocalRuntimeDirs();
     const formData = await request.formData();
