@@ -1,3 +1,4 @@
+import "@/lib/clerk-env";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Analytics } from "@vercel/analytics/next";
 import { IBM_Plex_Mono, Space_Grotesk } from "next/font/google";

@@ -1,3 +1,4 @@
+import "@/lib/clerk-env";
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 

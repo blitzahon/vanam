@@ -1,3 +1,4 @@
+import "@/lib/clerk-env";
 import { UserButton } from "@clerk/nextjs";
 import { auth as getAuth } from "@clerk/nextjs/server";
 import Link from "next/link";

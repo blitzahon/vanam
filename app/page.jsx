@@ -1,3 +1,4 @@
+import "@/lib/clerk-env";
 import { SignIn } from "@clerk/nextjs";
 import Link from "next/link";
 import { auth as getAuth } from "@clerk/nextjs/server";
@@ -69,7 +70,7 @@ export default async function HomePage() {
                 <p>Add your Clerk publishable key and secret key here to enable protected access for the operations team.</p>
                 <div className="auth-env-list">
                   <code>NEXT_PUBLIC_AUTHENTICATION_CLERK_PUBLISHABLE_KEY</code>
-                  <code>CLERK_SECRET_KEY</code>
+                  <code>AUTHENTICATION_CLERK_SECRET_KEY</code>
                 </div>
               </div>
             )}
