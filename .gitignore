@@ -32,3 +32,5 @@ yolov8n-cls.pt
 
 .vercel
 .npm-cache/
+runtime/
+videos/uploads/
