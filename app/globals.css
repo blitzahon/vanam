@@ -67,6 +67,15 @@ pre {
     linear-gradient(90deg, #16378f 0%, #1f3f96 55%, #f3f4f7 55%, #f3f4f7 100%);
 }
 
+.access-page-auth-only {
+  display: grid;
+  align-items: center;
+  background:
+    radial-gradient(circle at top left, rgba(70, 139, 255, 0.26), transparent 34%),
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.3), transparent 24%),
+    linear-gradient(180deg, #eaf0fb 0%, #f6f8fc 100%);
+}
+
 .access-shell {
   min-height: calc(100vh - 40px);
   display: grid;
@@ -263,6 +272,23 @@ pre {
   margin: 0 auto;
   display: grid;
   gap: 22px;
+}
+
+.auth-shell-centered {
+  width: min(100%, 560px);
+  min-height: auto;
+  margin: 0 auto;
+  grid-template-columns: minmax(0, 1fr);
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.auth-panel-centered {
+  min-width: 0;
+}
+
+.auth-brand-mark {
+  color: #0d1828;
 }
 
 .access-auth-header h2 {
@@ -1294,6 +1320,12 @@ pre {
     background:
       radial-gradient(circle at top left, rgba(70, 139, 255, 0.22), transparent 36%),
       linear-gradient(180deg, #16378f 0%, #1d3d92 56%, #f3f4f7 56%, #f3f4f7 100%);
+  }
+
+  .access-page-auth-only {
+    background:
+      radial-gradient(circle at top left, rgba(70, 139, 255, 0.18), transparent 40%),
+      linear-gradient(180deg, #eff4fd 0%, #f8faff 100%);
   }
 
   .access-shell {
