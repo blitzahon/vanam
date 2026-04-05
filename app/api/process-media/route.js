@@ -3,8 +3,8 @@ import { spawn } from "node:child_process";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { createEvent, upsertCameraSource } from "@/lib/db";
-import { ensureLocalRuntimeDirs, getPreferredClassifierModelPath, getUploadsDir, toProjectRelative } from "@/lib/local-runtime";
+import { createEvent, getActiveRecognitionProfile, getAssetById, upsertCameraSource } from "@/lib/db";
+import { ensureLocalRuntimeDirs, getRuntimeModelsDir, getUploadsDir, resolveProjectPath, toProjectRelative } from "@/lib/local-runtime";
 import { requireProtectedAccess } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -54,11 +54,13 @@ export async function POST(request) {
       status: "active"
     });
 
-    const classifierModelPath = await getPreferredClassifierModelPath();
+    const recognitionProfile = await getActiveRecognitionProfile();
+    const classifierModelPath = await resolveClassifierModelPath(recognitionProfile.classifierAsset);
     const processorResult = await runProcessor({
       videoPath: absoluteUploadPath,
       cameraId,
-      classifierModelPath
+      classifierModelPath,
+      allowedAnimalLabels: recognitionProfile.monitoredSpecies
     });
 
     const createdEvents = [];
@@ -85,6 +87,11 @@ export async function POST(request) {
         locationLabel
       },
       classifierModel: processorResult.classifierModel ?? null,
+      recognitionProfile: {
+        datasetTitle: recognitionProfile.datasetAsset?.title ?? null,
+        classifierTitle: recognitionProfile.classifierAsset?.title ?? null,
+        monitoredSpecies: recognitionProfile.monitoredSpecies
+      },
       eventCount: createdEvents.length,
       events: createdEvents
     });
@@ -94,13 +101,45 @@ export async function POST(request) {
   }
 }
 
-function runProcessor({ videoPath, cameraId, classifierModelPath }) {
+async function resolveClassifierModelPath(classifierAsset) {
+  if (!classifierAsset) {
+    return null;
+  }
+
+  if (classifierAsset.storageMode === "local-file" && classifierAsset.localPath) {
+    return resolveProjectPath(classifierAsset.localPath);
+  }
+
+  if (classifierAsset.storageMode !== "inline") {
+    return null;
+  }
+
+  const fullAsset = await getAssetById(classifierAsset.id);
+  if (!fullAsset?.fileDataBase64) {
+    return null;
+  }
+
+  const extension = path.extname(fullAsset.filename || "") || ".pt";
+  const outputPath = path.join(
+    getRuntimeModelsDir(),
+    `${classifierAsset.id}-${sanitizeSegment(path.basename(fullAsset.filename || classifierAsset.title, extension))}${extension}`
+  );
+
+  await writeFile(outputPath, Buffer.from(fullAsset.fileDataBase64, "base64"));
+  return outputPath;
+}
+
+function runProcessor({ videoPath, cameraId, classifierModelPath, allowedAnimalLabels }) {
   return new Promise((resolve, reject) => {
     const scriptPath = path.join(process.cwd(), "scripts", "process_media.py");
     const args = [scriptPath, "--video", videoPath, "--camera", cameraId];
 
     if (classifierModelPath) {
       args.push("--animal-cls-model", classifierModelPath);
+    }
+
+    if (allowedAnimalLabels?.length) {
+      args.push("--allowed-animal-labels", JSON.stringify(allowedAnimalLabels));
     }
 
     const child = spawn(process.env.PYTHON_BIN || "python", args, {

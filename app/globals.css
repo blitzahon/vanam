@@ -1206,6 +1206,36 @@ pre {
   gap: 12px;
 }
 
+.recognition-profile,
+.asset-upload-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.recognition-profile {
+  margin-top: 14px;
+}
+
+.asset-upload-stack {
+  margin-top: 14px;
+}
+
+.recognition-pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.recognition-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(112, 220, 255, 0.18);
+  background: rgba(112, 220, 255, 0.08);
+  color: var(--text);
+}
+
 .panel-head-compact {
   margin-bottom: 4px;
 }

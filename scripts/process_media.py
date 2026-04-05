@@ -24,6 +24,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--conf", type=float, default=0.40, help="Detector confidence threshold")
     parser.add_argument("--animal-cls-model", default=None, help="Optional classifier weights path")
     parser.add_argument("--animal-cls-conf", type=float, default=0.55, help="Classifier confidence threshold")
+    parser.add_argument(
+        "--allowed-animal-labels",
+        default="",
+        help="Optional JSON array of animal labels that should be treated as monitored species",
+    )
     return parser.parse_args()
 
 
@@ -51,6 +56,21 @@ def serialize_event(event_type: str, object_type: str, confidence: float, camera
     }
 
 
+def parse_allowed_labels(raw_value: str) -> set[str]:
+    if not raw_value:
+        return set()
+
+    try:
+        parsed = json.loads(raw_value)
+    except json.JSONDecodeError:
+        return set()
+
+    if not isinstance(parsed, list):
+        return set()
+
+    return {str(entry).strip().lower() for entry in parsed if str(entry).strip()}
+
+
 def main() -> int:
     args = parse_args()
     video_file = Path(args.video).expanduser().resolve()
@@ -75,6 +95,7 @@ def main() -> int:
     )
     animal_tracker = AnimalTracker(frame_w)
     vehicle_tracker = VehicleTracker(frame_w, frame_h)
+    allowed_animal_labels = parse_allowed_labels(args.allowed_animal_labels)
     events = []
 
     try:
@@ -89,6 +110,9 @@ def main() -> int:
 
             animal_event = animal_tracker.update(detections)
             if animal_event:
+                if allowed_animal_labels and animal_event["object_type"].strip().lower() not in allowed_animal_labels:
+                    continue
+
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 image_path = save_frame(frame, animal_event["event_type"], animal_event["object_type"], timestamp)
                 events.append(
@@ -127,6 +151,7 @@ def main() -> int:
                 "videoPath": str(video_file),
                 "cameraId": args.camera,
                 "classifierModel": args.animal_cls_model,
+                "allowedAnimalLabels": sorted(allowed_animal_labels),
                 "events": events,
             },
             ensure_ascii=True,
