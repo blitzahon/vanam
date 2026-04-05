@@ -1200,9 +1200,14 @@ pre {
 }
 
 .notification-form,
-.test-sms-form {
+.test-sms-form,
+.asset-upload-form {
   display: grid;
   gap: 12px;
+}
+
+.panel-head-compact {
+  margin-bottom: 4px;
 }
 
 .notification-grid {

@@ -18,6 +18,10 @@ export function DashboardClient({ initialPayload }) {
   const [notificationError, setNotificationError] = useState("");
   const [testSmsStatus, setTestSmsStatus] = useState("");
   const [testSmsError, setTestSmsError] = useState("");
+  const [isUploadingDataset, setIsUploadingDataset] = useState(false);
+  const [datasetStatus, setDatasetStatus] = useState("");
+  const [datasetError, setDatasetError] = useState("");
+  const [datasetForm, setDatasetForm] = useState(buildDatasetForm());
   const [notificationForm, setNotificationForm] = useState(() => buildNotificationForm(initialPayload.notificationSettings));
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -66,6 +70,7 @@ export function DashboardClient({ initialPayload }) {
   const cameraSources = payload.cameraSources ?? [];
   const recentEvents = payload.recentEvents ?? [];
   const assetRegistry = payload.assetRegistry ?? [];
+  const hasDatabase = Boolean(payload.hasDatabase);
   const supportsLocalMediaProcessing = Boolean(payload.supportsLocalMediaProcessing);
   const activeCameraSources = cameraSources.filter((camera) => camera.status === "active").length;
   const smsRecipientCount =
@@ -293,6 +298,53 @@ export function DashboardClient({ initialPayload }) {
     }
   }
 
+  function handleDatasetFieldChange(event) {
+    const { name, type, checked, value, files } = event.target;
+    setDatasetForm((current) => ({
+      ...current,
+      [name]: type === "checkbox" ? checked : name === "file" ? files?.[0] ?? null : value
+    }));
+  }
+
+  async function handleDatasetSubmit(event) {
+    event.preventDefault();
+    setIsUploadingDataset(true);
+    setDatasetStatus("");
+    setDatasetError("");
+
+    try {
+      const formData = new FormData();
+      formData.append("assetKind", "dataset");
+      formData.append("title", datasetForm.title);
+      formData.append("classLabels", datasetForm.classLabels);
+      formData.append("notes", datasetForm.notes);
+      formData.append("externalUrl", datasetForm.externalUrl);
+      formData.append("isActive", String(datasetForm.isActive));
+
+      if (datasetForm.file) {
+        formData.append("file", datasetForm.file);
+      }
+
+      const response = await fetch("/api/assets", {
+        method: "POST",
+        body: formData
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.ok) {
+        throw new Error(result.error ?? "Unable to upload the dataset.");
+      }
+
+      setDatasetStatus("Dataset registered successfully.");
+      setDatasetForm(buildDatasetForm());
+      await refreshOverview();
+    } catch (error) {
+      setDatasetError(error instanceof Error ? error.message : "Unable to upload the dataset.");
+    } finally {
+      setIsUploadingDataset(false);
+    }
+  }
+
   return (
     <div className="dashboard-shell">
       <section className="status-strip">
@@ -351,6 +403,103 @@ export function DashboardClient({ initialPayload }) {
               <EmptyState message="No dataset or model assets are registered yet." />
             )}
           </div>
+
+          <form className="asset-upload-form" onSubmit={handleDatasetSubmit}>
+            <div className="panel-head panel-head-compact">
+              <div>
+                <h3>Dataset registry</h3>
+                <p>Upload a dataset archive or register an external dataset URL so the AI workspace can reference the active classes.</p>
+              </div>
+            </div>
+
+            {!hasDatabase ? (
+              <div className="media-status">
+                Connect `DATABASE_URL` first. Online dataset uploads are stored through the asset registry and need persistent database storage.
+              </div>
+            ) : null}
+
+            <div className="notification-grid">
+              <label className="media-field">
+                <span>Dataset title</span>
+                <input
+                  disabled={!hasDatabase || isUploadingDataset}
+                  name="title"
+                  onChange={handleDatasetFieldChange}
+                  placeholder="Field dataset v3"
+                  type="text"
+                  value={datasetForm.title}
+                />
+              </label>
+
+              <label className="media-field">
+                <span>Class labels</span>
+                <input
+                  disabled={!hasDatabase || isUploadingDataset}
+                  name="classLabels"
+                  onChange={handleDatasetFieldChange}
+                  placeholder="elephant, horse, deer"
+                  type="text"
+                  value={datasetForm.classLabels}
+                />
+              </label>
+            </div>
+
+            <label className="media-field">
+              <span>Dataset archive upload</span>
+              <input
+                accept=".zip,.json,.txt,.csv,application/zip"
+                disabled={!hasDatabase || isUploadingDataset}
+                name="file"
+                onChange={handleDatasetFieldChange}
+                type="file"
+              />
+            </label>
+
+            <label className="media-field">
+              <span>External dataset URL</span>
+              <input
+                disabled={!hasDatabase || isUploadingDataset}
+                name="externalUrl"
+                onChange={handleDatasetFieldChange}
+                placeholder="https://..."
+                type="url"
+                value={datasetForm.externalUrl}
+              />
+            </label>
+
+            <label className="media-field">
+              <span>Notes</span>
+              <textarea
+                disabled={!hasDatabase || isUploadingDataset}
+                name="notes"
+                onChange={handleDatasetFieldChange}
+                placeholder="Describe what this dataset should improve."
+                rows="3"
+                value={datasetForm.notes}
+              />
+            </label>
+
+            <label className="toggle-row">
+              <div>
+                <strong>Set as active dataset</strong>
+                <span>Use this dataset as the primary registry reference for future recognition and training workflows.</span>
+              </div>
+              <input checked={datasetForm.isActive} disabled={!hasDatabase || isUploadingDataset} name="isActive" onChange={handleDatasetFieldChange} type="checkbox" />
+            </label>
+
+            <div className="media-status">
+              Uploading a dataset online registers it for the AI workspace and exposes its class labels. It will not improve recognition by itself until you train or attach a classifier/model built from that dataset.
+            </div>
+
+            <div className="form-actions">
+              <button className="media-button primary" disabled={!hasDatabase || isUploadingDataset || !datasetForm.title || (!datasetForm.file && !datasetForm.externalUrl)} type="submit">
+                {isUploadingDataset ? "Uploading..." : "Register dataset"}
+              </button>
+            </div>
+          </form>
+
+          {datasetStatus ? <div className="media-status">{datasetStatus}</div> : null}
+          {datasetError ? <div className="media-status media-status-error">{datasetError}</div> : null}
         </Panel>
 
         <Panel title="Test with video or camera" subtitle="Use an uploaded clip or a browser camera recording instead of a live CCTV source.">
@@ -782,4 +931,15 @@ function splitRecipients(value) {
     .split(/[,\n]/)
     .map((entry) => entry.trim())
     .filter(Boolean);
+}
+
+function buildDatasetForm() {
+  return {
+    title: "",
+    classLabels: "",
+    externalUrl: "",
+    notes: "",
+    isActive: true,
+    file: null
+  };
 }
