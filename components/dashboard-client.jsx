@@ -4,6 +4,43 @@ import { useEffect, useRef, useState } from "react";
 
 const refreshInterval = 10000;
 
+/** Vercel serverless request bodies are capped (~4.5 MB); multipart form overhead needs margin. */
+const MAX_INLINE_ASSET_BYTES = 4 * 1024 * 1024;
+
+async function readAssetUploadResponse(response) {
+  const text = await response.text();
+  const trimmed = text.trim();
+
+  if (!trimmed) {
+    return { ok: false, error: `Empty response (${response.status}).` };
+  }
+
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      return { ok: false, error: trimmed.slice(0, 200) };
+    }
+  }
+
+  if (trimmed.startsWith("<")) {
+    return {
+      ok: false,
+      error: `Server returned a non-JSON page (${response.status}). Try a smaller file or use an external URL.`
+    };
+  }
+
+  if (response.status === 413 || /request entity too large|payload too large/i.test(text)) {
+    return {
+      ok: false,
+      error:
+        "File is too large for this deployment (~4.5 MB limit on Vercel). Paste an External model URL (HTTPS) to a hosted .pt file, or register the asset from local dev."
+    };
+  }
+
+  return { ok: false, error: trimmed.slice(0, 280) };
+}
+
 export function DashboardClient({ initialPayload }) {
   const [payload, setPayload] = useState(initialPayload);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -34,13 +71,13 @@ export function DashboardClient({ initialPayload }) {
   const cameraStreamRef = useRef(null);
   const recordedChunksRef = useRef([]);
   const summary = payload.summary;
-  const workspaceStatus = getWorkspaceStatus(payload.mode);
+  const hasDatabase = Boolean(payload.hasDatabase);
+  const supportsLocalMediaProcessing = Boolean(payload.supportsLocalMediaProcessing);
+  const workspaceStatus = getWorkspaceStatus(payload.mode, supportsLocalMediaProcessing);
   const notificationSettings = payload.notificationSettings ?? {};
   const cameraSources = payload.cameraSources ?? [];
   const recentEvents = payload.recentEvents ?? [];
   const assetRegistry = payload.assetRegistry ?? [];
-  const hasDatabase = Boolean(payload.hasDatabase);
-  const supportsLocalMediaProcessing = Boolean(payload.supportsLocalMediaProcessing);
   const activeCameraSources = cameraSources.filter((camera) => camera.status === "active").length;
   const smsRecipientCount =
     (notificationSettings.animalRecipients?.length ?? 0) + (notificationSettings.accidentRecipients?.length ?? 0);
@@ -63,12 +100,14 @@ export function DashboardClient({ initialPayload }) {
     const timer = setInterval(async () => {
       try {
         const response = await fetch("/api/overview", { cache: "no-store" });
-        if (!response.ok) {
+        const raw = await response.text();
+        if (!raw.trim()) {
           return;
         }
-
-        const nextPayload = await response.json();
-        setPayload(nextPayload);
+        const nextPayload = JSON.parse(raw);
+        if (response.ok || nextPayload.summary) {
+          setPayload(nextPayload);
+        }
       } catch {
         // Keep the last successful payload if refresh fails.
       }
@@ -95,11 +134,14 @@ export function DashboardClient({ initialPayload }) {
 
   async function refreshOverview() {
     const response = await fetch("/api/overview", { cache: "no-store" });
-    if (!response.ok) {
-      throw new Error("Unable to refresh the dashboard.");
+    const raw = await response.text();
+    if (!raw.trim()) {
+      throw new Error("Empty response from dashboard API.");
     }
-
-    const nextPayload = await response.json();
+    const nextPayload = JSON.parse(raw);
+    if (!response.ok && !nextPayload.summary) {
+      throw new Error(nextPayload.error ?? "Unable to refresh the dashboard.");
+    }
     setPayload(nextPayload);
   }
 
@@ -120,7 +162,15 @@ export function DashboardClient({ initialPayload }) {
         method: "POST",
         body: formData
       });
-      const result = await response.json();
+      const raw = await response.text();
+      let result = { ok: false, error: "Empty server response." };
+      if (raw.trim()) {
+        try {
+          result = JSON.parse(raw);
+        } catch {
+          result = { ok: false, error: raw.slice(0, 200) || "Invalid JSON from server." };
+        }
+      }
 
       if (!response.ok || !result.ok) {
         throw new Error(result.error ?? "Media processing failed.");
@@ -329,6 +379,11 @@ export function DashboardClient({ initialPayload }) {
     formData.append("isActive", String(form.isActive));
 
     if (form.file) {
+      if (form.file.size > MAX_INLINE_ASSET_BYTES) {
+        throw new Error(
+          `This file is about ${(form.file.size / (1024 * 1024)).toFixed(1)} MB. Deployed apps here accept at most ~4 MB per upload — use External URL or run from local.`
+        );
+      }
       formData.append("file", form.file);
     }
 
@@ -336,7 +391,7 @@ export function DashboardClient({ initialPayload }) {
       method: "POST",
       body: formData
     });
-    const result = await response.json();
+    const result = await readAssetUploadResponse(response);
 
     if (!response.ok || !result.ok) {
       throw new Error(result.error ?? "Unable to upload the asset.");
@@ -397,9 +452,19 @@ export function DashboardClient({ initialPayload }) {
       </section>
 
       {workspaceStatus.notice ? <section className="setup-card">{workspaceStatus.notice}</section> : null}
+      {payload.error ? (
+        <section className="setup-card media-status-error">{String(payload.error)}</section>
+      ) : null}
 
       <section className="media-lab-grid">
-        <Panel title="AI runtime" subtitle="Project dataset and classifier assets currently connected to this workspace.">
+        <Panel
+          title="AI runtime"
+          subtitle={
+            supportsLocalMediaProcessing
+              ? "Local folders are scanned automatically; use the forms below only if you want a copy in the database."
+              : "Project dataset and classifier assets currently connected to this workspace."
+          }
+        >
           <div className="runtime-grid">
             <RuntimeCard
               label="Dataset"
@@ -438,7 +503,13 @@ export function DashboardClient({ initialPayload }) {
                 </article>
               ))
             ) : (
-              <EmptyState message="No dataset or model assets are registered yet." />
+              <EmptyState
+                message={
+                  supportsLocalMediaProcessing
+                    ? "No datasets or models found. Add datasets/<name>/ with train/ or val/ class folders, or optional classifier weights under runs/classify/.../weights/best.pt, or register assets below."
+                    : "No dataset or model assets are registered yet."
+                }
+              />
             )}
           </div>
 
@@ -446,7 +517,10 @@ export function DashboardClient({ initialPayload }) {
             <div className="panel-head panel-head-compact">
               <div>
                 <h3>Recognition profile</h3>
-                <p>The active dataset defines which animal labels the local AI should treat as monitored species.</p>
+                <p>
+                  Monitored species come from your active dataset classes. Locally, those classes are the folder names under{" "}
+                  <code>datasets/&lt;name&gt;/train</code> or <code>val</code> (no upload required).
+                </p>
               </div>
             </div>
 
@@ -632,7 +706,8 @@ export function DashboardClient({ initialPayload }) {
               </label>
 
               <div className="media-status">
-                Dataset labels now define which species are monitored. Uploading an active classifier is what actually improves species-level recognition quality.
+                Dataset labels now define which species are monitored. Uploading an active classifier is what actually improves species-level recognition quality. On Vercel,
+                files over ~4 MB cannot be uploaded inline — use <strong>External model URL</strong> (HTTPS link to your <code>.pt</code>) instead.
               </div>
 
               <div className="form-actions">
@@ -649,12 +724,23 @@ export function DashboardClient({ initialPayload }) {
           {modelError ? <div className="media-status media-status-error">{modelError}</div> : null}
         </Panel>
 
-        <Panel title="Test with video or camera" subtitle="Use an uploaded clip or a browser camera recording instead of a live CCTV source.">
+        <Panel
+          title="Test with video or camera"
+          subtitle={
+            supportsLocalMediaProcessing
+              ? "Upload a file or record from your browser — processing runs locally with Python (YOLO + optional classifier)."
+              : "Use an uploaded clip or a browser camera recording instead of a live CCTV source."
+          }
+        >
           {!supportsLocalMediaProcessing ? (
             <div className="media-status">
               Local upload and browser-camera processing are available in the local workspace. Add persistent storage and a worker runtime before enabling this flow in Vercel production.
             </div>
-          ) : null}
+          ) : (
+            <div className="media-status">
+              Requires <code>python</code> on your PATH with project dependencies (e.g. <code>ultralytics</code>, <code>opencv-python</code>). First run may download <code>yolov8n.pt</code>.
+            </div>
+          )}
 
           <form className="media-form" onSubmit={handleUploadSubmit}>
             <label className="media-field">
@@ -983,7 +1069,16 @@ function EmptyState({ message }) {
   return <div className="empty-state">{message}</div>;
 }
 
-function getWorkspaceStatus(mode) {
+function getWorkspaceStatus(mode, supportsLocalMediaProcessing = false) {
+  if (mode === "database" && supportsLocalMediaProcessing) {
+    return {
+      label: "Local AI + database",
+      notice:
+        "Video and camera clips are analyzed on this machine. Folders under datasets/ (train or val class subfolders) and classifier weights at runs/classify/<run>/weights/best.pt are picked up automatically — registry uploads are optional.",
+      dotClass: "live"
+    };
+  }
+
   if (mode === "database") {
     return {
       label: "Live monitoring",

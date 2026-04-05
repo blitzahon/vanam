@@ -5,28 +5,29 @@ import path from "node:path";
 
 import { createEvent, getActiveRecognitionProfile, getAssetById, upsertCameraSource } from "@/lib/db";
 import { ensureLocalRuntimeDirs, getRuntimeModelsDir, getUploadsDir, resolveProjectPath, toProjectRelative } from "@/lib/local-runtime";
+import { stripBigInts } from "@/lib/strip-bigint";
 import { requireProtectedAccess } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(request) {
-  const access = await requireProtectedAccess();
-  if (!access.ok) {
-    return access.response;
-  }
-
-  if (process.env.VERCEL) {
-    return Response.json(
-      {
-        ok: false,
-        error: "Local video upload and browser-camera processing are intended for the local workspace. Use persistent object storage before enabling this flow in Vercel production."
-      },
-      { status: 501 }
-    );
-  }
-
   try {
+    const access = await requireProtectedAccess();
+    if (!access.ok) {
+      return access.response;
+    }
+
+    if (process.env.VERCEL) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Local video upload and browser-camera processing are intended for the local workspace. Use persistent object storage before enabling this flow in Vercel production."
+        },
+        { status: 501 }
+      );
+    }
+
     await ensureLocalRuntimeDirs();
     const formData = await request.formData();
     const file = formData.get("file");
@@ -78,23 +79,25 @@ export async function POST(request) {
       );
     }
 
-    return Response.json({
-      ok: true,
-      source: {
-        cameraId,
-        sourceType,
-        sourceValue: relativeUploadPath,
-        locationLabel
-      },
-      classifierModel: processorResult.classifierModel ?? null,
-      recognitionProfile: {
-        datasetTitle: recognitionProfile.datasetAsset?.title ?? null,
-        classifierTitle: recognitionProfile.classifierAsset?.title ?? null,
-        monitoredSpecies: recognitionProfile.monitoredSpecies
-      },
-      eventCount: createdEvents.length,
-      events: createdEvents
-    });
+    return Response.json(
+      stripBigInts({
+        ok: true,
+        source: {
+          cameraId,
+          sourceType,
+          sourceValue: relativeUploadPath,
+          locationLabel
+        },
+        classifierModel: processorResult.classifierModel ?? null,
+        recognitionProfile: {
+          datasetTitle: recognitionProfile.datasetAsset?.title ?? null,
+          classifierTitle: recognitionProfile.classifierAsset?.title ?? null,
+          monitoredSpecies: recognitionProfile.monitoredSpecies
+        },
+        eventCount: createdEvents.length,
+        events: createdEvents
+      })
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to process media input.";
     return Response.json({ ok: false, error: message }, { status: 500 });
