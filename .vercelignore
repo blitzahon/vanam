@@ -1,0 +1,14 @@
+.git
+.next
+.npm-cache
+.vercel
+.venv
+__pycache__
+datasets
+runs
+videos
+events
+Ultralytics
+runtime
+database.db
+*.pt
