@@ -9,6 +9,7 @@ Press Q to quit the preview window.
 """
 
 import argparse
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -27,6 +28,13 @@ from animal_logic import AnimalTracker
 from database import init_db, log_event
 from detection import Detector
 from paths import EVENTS_DIR, VIDEOS_DIR, ensure_runtime_dirs, relative_to_base
+
+
+def get_sms_recipients() -> dict:
+    """Read SMS recipient numbers from environment variables."""
+    animal = os.environ.get("VANAM_ANIMAL_SMS_TO", "").strip() or None
+    accident = os.environ.get("VANAM_ACCIDENT_SMS_TO", "").strip() or None
+    return {"animal": animal, "accident": accident}
 
 
 def save_frame(frame, event_type: str, object_type: str, timestamp: str) -> Path:
@@ -73,6 +81,7 @@ def run(
     )
     animal_tracker = AnimalTracker(frame_w)
     vehicle_tracker = VehicleTracker(frame_w, frame_h)
+    sms_recipients = get_sms_recipients()
 
     alert_system_start()
     print(f"[VANAM] Camera ID        : {camera_id}")
@@ -81,6 +90,10 @@ def run(
     print("[VANAM] Dashboard        : python dashboard.py")
     if animal_classifier:
         print(f"[VANAM] Animal classifier: {animal_cls_model}")
+    if sms_recipients["animal"]:
+        print(f"[VANAM] Animal SMS       : {sms_recipients['animal']}")
+    if sms_recipients["accident"]:
+        print(f"[VANAM] Accident SMS     : {sms_recipients['accident']}")
 
     events_logged = 0
 
@@ -120,6 +133,7 @@ def run(
                     image_path=relative_to_base(image_path),
                     zone_path=animal_event.get("zone_path"),
                     camera_id=camera_id,
+                    sms_to=sms_recipients["animal"],
                 )
                 events_logged += 1
 
@@ -146,6 +160,7 @@ def run(
                     confidence=accident_event["confidence"],
                     image_path=relative_to_base(image_path),
                     camera_id=camera_id,
+                    sms_to=sms_recipients["accident"],
                 )
                 events_logged += 1
 

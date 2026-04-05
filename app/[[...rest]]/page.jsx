@@ -36,28 +36,6 @@ export default function HomePage() {
             ) : canRenderSignIn ? (
               <div className="auth-card auth-card-light">
                 <SignIn
-                  appearance={{
-                    elements: {
-                      rootBox: "clerk-root",
-                      card: "clerk-card",
-                      headerTitle: "clerk-title",
-                      headerSubtitle: "clerk-subtitle",
-                      socialButtonsBlockButton: "clerk-social-button",
-                      formButtonPrimary: "clerk-primary-button",
-                      formFieldInput: "clerk-input",
-                      formFieldLabel: "clerk-label",
-                      identityPreviewText: "clerk-subtitle",
-                      identityPreviewEditButton: "clerk-link",
-                      formResendCodeLink: "clerk-link",
-                      dividerLine: "clerk-divider-line",
-                      dividerText: "clerk-divider-text",
-                      formFieldSuccessText: "clerk-success-text",
-                      alertText: "clerk-alert-text",
-                      footerAction: "clerk-footer-hidden",
-                      footerActionText: "clerk-footer-hidden",
-                      footerActionLink: "clerk-footer-hidden"
-                    }
-                  }}
                   fallbackRedirectUrl="/dashboard"
                   routing="path"
                   signInUrl={signInUrl}

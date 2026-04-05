@@ -1,3 +1,7 @@
+import os
+
+from twilio.rest import Client
+
 RED = "\033[91m"
 YELLOW = "\033[93m"
 GREEN = "\033[92m"
@@ -10,6 +14,21 @@ def _divider(char: str = "=", width: int = 52, color: str = CYAN) -> str:
     return f"{color}{char * width}{RESET}"
 
 
+def _send_sms(body: str, to: str) -> None:
+    account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
+    auth_token  = os.environ.get("TWILIO_AUTH_TOKEN")
+    from_number = os.environ.get("TWILIO_FROM_NUMBER")
+    if not all([account_sid, auth_token, from_number]):
+        return
+    try:
+        Client(account_sid, auth_token).messages.create(
+            body=body, from_=from_number, to=to
+        )
+        print(f"  SMS sent to {to}")
+    except Exception as exc:
+        print(f"  SMS failed: {exc}")
+
+
 def alert_animal_crossing(
     animal_type: str,
     timestamp: str,
@@ -17,6 +36,7 @@ def alert_animal_crossing(
     image_path: str,
     zone_path: str | None = None,
     camera_id: str = "CAM-01",
+    sms_to: str | None = None,
 ) -> None:
     print()
     print(_divider(color=YELLOW))
@@ -34,6 +54,13 @@ def alert_animal_crossing(
     print(_divider(color=YELLOW))
     print()
 
+    if sms_to:
+        _send_sms(
+            f"VANAM ALERT: {animal_type.capitalize()} crossing detected at {timestamp}. "
+            f"Camera: {camera_id}. Confidence: {confidence:.0%}.",
+            to=sms_to,
+        )
+
 
 def alert_accident(
     vehicles_count: int,
@@ -41,6 +68,7 @@ def alert_accident(
     confidence: float,
     image_path: str,
     camera_id: str = "CAM-01",
+    sms_to: str | None = None,
 ) -> None:
     print()
     print(_divider(color=RED))
@@ -55,6 +83,13 @@ def alert_accident(
     print(f"  {'Database':<14}: {GREEN}Entry created{RESET}")
     print(_divider(color=RED))
     print()
+
+    if sms_to:
+        _send_sms(
+            f"VANAM ALERT: Accident detected at {timestamp}. "
+            f"Vehicles: {vehicles_count}. Camera: {camera_id}. Confidence: {confidence:.0%}.",
+            to=sms_to,
+        )
 
 
 def alert_system_start() -> None:
