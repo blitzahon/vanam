@@ -92,7 +92,7 @@ The web app uses `Clerk` for employee authentication. When Clerk keys are presen
 2. Add these values to `.env.local`:
 
 ```bash
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_publishable_key
+NEXT_PUBLIC_AUTHENTICATION_CLERK_PUBLISHABLE_KEY=your_publishable_key
 CLERK_SECRET_KEY=your_secret_key
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up

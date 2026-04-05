@@ -68,7 +68,7 @@ export default async function HomePage() {
                 <strong>Employee sign-in is not enabled in this environment.</strong>
                 <p>Add your Clerk publishable key and secret key here to enable protected access for the operations team.</p>
                 <div className="auth-env-list">
-                  <code>NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY</code>
+                  <code>NEXT_PUBLIC_AUTHENTICATION_CLERK_PUBLISHABLE_KEY</code>
                   <code>CLERK_SECRET_KEY</code>
                 </div>
               </div>

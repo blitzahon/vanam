@@ -1,13 +1,16 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-import { isClerkEnabled } from "@/lib/clerk";
+import { getClerkPublishableKey, isClerkEnabled } from "@/lib/clerk";
 
 const isProtectedRoute = createRouteMatcher(["/dashboard(.*)", "/api(.*)"]);
+const publishableKey = getClerkPublishableKey();
 const withClerk = clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
     await auth.protect();
   }
+}, {
+  publishableKey
 });
 
 export default isClerkEnabled() ? withClerk : () => NextResponse.next();
