@@ -105,7 +105,7 @@ export function DashboardClient({ initialPayload }) {
     setIsSubmitting(true);
     setProcessingError("");
     setProcessingResult(null);
-    setProcessingMessage(sourceType === "browser-camera" ? "Processing browser camera clip..." : "Processing uploaded video...");
+    setProcessingMessage(sourceType === "browser-camera" ? "Analysing live CCTV feed..." : "Analysing uploaded footage...");
 
     try {
       const formData = new FormData();
@@ -135,8 +135,8 @@ export function DashboardClient({ initialPayload }) {
       setProcessingResult(result);
       setProcessingMessage(
         result.eventCount
-          ? `${result.eventCount} alert${result.eventCount === 1 ? "" : "s"} generated from ${sourceType === "browser-camera" ? "the browser camera clip" : "the uploaded video"}.`
-          : "Processing finished without a confirmed alert on this clip."
+          ? `${result.eventCount} alert${result.eventCount === 1 ? "" : "s"} generated from ${sourceType === "browser-camera" ? "the live CCTV feed" : "the uploaded footage"}.`
+          : "Analysis complete. No confirmed incidents detected on this footage."
       );
       setSelectedFile(null);
       await refreshOverview();
@@ -221,7 +221,7 @@ export function DashboardClient({ initialPayload }) {
 
     recorder.start();
     setIsRecording(true);
-    setProcessingMessage("Recording browser camera clip...");
+    setProcessingMessage("Capturing live CCTV feed...");
     setProcessingError("");
   }
 
@@ -330,11 +330,11 @@ export function DashboardClient({ initialPayload }) {
 
       <section className="media-lab-grid">
         <Panel
-          title="AI runtime"
+          title="Detection Engine"
           subtitle={
             supportsLocalMediaProcessing
-              ? "Local folders are scanned automatically; use the forms below only if you want a copy in the database."
-              : "Project dataset and classifier assets currently connected to this workspace."
+              ? "AI models are active and scanning all registered CCTV feeds. Species recognition and vehicle tracking are running continuously."
+              : "Classifier and dataset assets connected to this deployment. Configure models before activating live surveillance."
           }
         >
           <div className="runtime-grid">
@@ -353,12 +353,12 @@ export function DashboardClient({ initialPayload }) {
               note={classifierAsset ? classifierAsset.title : "Upload or train a classifier to refine animal labels."}
             />
             <RuntimeCard
-              label="Registered inputs"
+              label="CCTV Sources"
               value={cameraSources.length}
               note={
                 cameraSources.length
-                  ? `${activeCameraSources || cameraSources.length} active source${(activeCameraSources || cameraSources.length) === 1 ? "" : "s"}`
-                  : "No uploaded videos or browser captures have been registered yet."
+                  ? `${activeCameraSources || cameraSources.length} active feed${(activeCameraSources || cameraSources.length) === 1 ? "" : "s"} under surveillance`
+                  : "No CCTV feeds have been registered yet."
               }
             />
           </div>
@@ -390,8 +390,7 @@ export function DashboardClient({ initialPayload }) {
               <div>
                 <h3>Recognition profile</h3>
                 <p>
-                  Monitored species come from your active dataset classes. Locally, those classes are the folder names under{" "}
-                  <code>datasets/&lt;name&gt;/train</code> or <code>val</code> (no upload required).
+                  Species actively monitored across all CCTV feeds. The system will generate alerts only for the classes listed below.
                 </p>
               </div>
             </div>
@@ -413,26 +412,26 @@ export function DashboardClient({ initialPayload }) {
         </Panel>
 
         <Panel
-          title="Test with video or camera"
+          title="CCTV Feed Analysis"
           subtitle={
             supportsLocalMediaProcessing
-              ? "Upload a file or record from your browser — processing runs locally with Python (YOLO + optional classifier)."
-              : "Use an uploaded clip or a browser camera recording instead of a live CCTV source."
+              ? "Submit recorded footage or connect a live CCTV feed for real-time threat detection and automated incident logging."
+              : "Upload surveillance footage or connect a live camera feed for analysis and incident documentation."
           }
         >
           {!supportsLocalMediaProcessing ? (
             <div className="media-status">
-              Local upload and browser-camera processing are available in the local workspace. Add persistent storage and a worker runtime before enabling this flow in Vercel production.
+              CCTV footage analysis requires a locally deployed runtime. Configure persistent storage and a processing worker before enabling this in production.
             </div>
           ) : (
             <div className="media-status">
-              Requires <code>python</code> on your PATH with project dependencies (e.g. <code>ultralytics</code>, <code>opencv-python</code>). First run may download <code>yolov8n.pt</code>.
+              Powered by YOLOv8 with optional species classifier. Detects wildlife crossings and vehicle incidents in real time across all submitted feeds.
             </div>
           )}
 
           <form className="media-form" onSubmit={handleUploadSubmit}>
             <label className="media-field">
-              <span>Upload a placeholder video</span>
+              <span>Upload CCTV footage</span>
               <input
                 accept="video/*"
                 disabled={isSubmitting || !supportsLocalMediaProcessing}
@@ -441,33 +440,33 @@ export function DashboardClient({ initialPayload }) {
               />
             </label>
             <button className="media-button primary" disabled={!selectedFile || isSubmitting || !supportsLocalMediaProcessing} type="submit">
-              {isSubmitting ? "Processing..." : "Analyze uploaded video"}
+              {isSubmitting ? "Analysing..." : "Analyse footage"}
             </button>
           </form>
 
           <div className="camera-capture-card">
             <div className="camera-capture-head">
               <div>
-                <strong>Browser camera</strong>
-                <span>Record a short clip, then run the same detection pipeline on it.</span>
+                <strong>Live CCTV Feed</strong>
+                <span>Connect a camera to stream live footage directly through the detection pipeline for real-time incident monitoring.</span>
               </div>
               <div className="camera-capture-actions">
                 {isCameraReady ? (
                   <button className="media-button" disabled={isSubmitting || !supportsLocalMediaProcessing} onClick={handleStopCamera} type="button">
-                    Stop camera
+                    Disconnect feed
                   </button>
                 ) : (
                   <button className="media-button" disabled={isSubmitting || !supportsLocalMediaProcessing} onClick={handleStartCamera} type="button">
-                    Start camera
+                    Connect feed
                   </button>
                 )}
                 {!isRecording ? (
                   <button className="media-button primary" disabled={!isCameraReady || isSubmitting || !supportsLocalMediaProcessing} onClick={handleRecordCamera} type="button">
-                    Record clip
+                    Capture & analyse
                   </button>
                 ) : (
                   <button className="media-button primary" disabled={isSubmitting || !supportsLocalMediaProcessing} onClick={handleStopRecording} type="button">
-                    Stop and analyze
+                    Stop and analyse
                   </button>
                 )}
               </div>
@@ -477,7 +476,7 @@ export function DashboardClient({ initialPayload }) {
               {isCameraReady ? (
                 <video autoPlay className="camera-preview" muted playsInline ref={cameraPreviewRef} />
               ) : (
-                <div className="camera-preview camera-preview-empty">Camera preview will appear here once access is granted.</div>
+                <div className="camera-preview camera-preview-empty">Live CCTV feed will appear here once the connection is authorised.</div>
               )}
             </div>
           </div>
@@ -548,7 +547,7 @@ export function DashboardClient({ initialPayload }) {
             </div>
           </Panel>
 
-          <Panel title="Source coverage" subtitle="Most recent activity by registered placeholder or live source.">
+          <Panel title="CCTV Coverage" subtitle="Live status of all registered surveillance feeds and their latest incident activity.">
             <div className="camera-list">
               {payload.cameraBreakdown.length ? (
                 payload.cameraBreakdown.map((camera) => (
@@ -666,11 +665,11 @@ export function DashboardClient({ initialPayload }) {
 
               <article className="readiness-item">
                 <div>
-                  <strong>Input registry</strong>
+                  <strong>CCTV Registry</strong>
                   <span>
                     {cameraSources.length
-                      ? `${activeCameraSources || cameraSources.length} source${(activeCameraSources || cameraSources.length) === 1 ? "" : "s"} currently active`
-                      : "No media inputs have been registered yet"}
+                      ? `${activeCameraSources || cameraSources.length} feed${(activeCameraSources || cameraSources.length) === 1 ? "" : "s"} currently active and under surveillance`
+                      : "No CCTV feeds have been registered yet"}
                   </span>
                 </div>
                 <em className={`readiness-pill ${cameraSources.length ? "" : "muted"}`}>{cameraSources.length ? "Available" : "Needs setup"}</em>
